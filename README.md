@@ -1,5 +1,3 @@
----
-
 ### **1. Project Description**
 
 **Project Overview**:
@@ -22,17 +20,17 @@ Our solution will leverage **IBM Granite models** to process both **speech-to-te
 ### **Solution Approach:**
 
 1. **Data Upload**:
-    - Users will upload a **CSV file** or **meeting recording** (audio file) for analysis.
+   - Users will upload a **CSV file** or **meeting recording** (audio file) for analysis.
 2. **Violation Detection**:
-    - We will use **Granite Speech 8B** (for speech-to-text) to convert audio recordings into text.
-    - The extracted text will be analyzed for violations of **GDPR** and **HIPAA** using **Granite Instruct** (for text analysis).
+   - We will use **Granite Speech 8B** (for speech-to-text) to convert audio recordings into text.
+   - The extracted text will be analyzed for violations of **GDPR** and **HIPAA** using **Granite Instruct** (for text analysis).
 3. **Rule Cross-Referencing**:
-    - The tool will **cross-reference** the detected data with the **GDPR** and **HIPAA rules** (extracted from the **preloaded PDFs** or user-uploaded rule files).
-    - It will then flag any **PII** or **PHI** violations.
+   - The tool will **cross-reference** the detected data with the **GDPR** and **HIPAA rules** (extracted from the **preloaded PDFs** or user-uploaded rule files).
+   - It will then flag any **PII** or **PHI** violations.
 4. **Reporting**:
-    - Upon detecting a violation, the tool will generate a **PDF report** detailing the violation and the specific **GDPR/HIPAA rule** that was violated.
+   - Upon detecting a violation, the tool will generate a **PDF report** detailing the violation and the specific **GDPR/HIPAA rule** that was violated.
 5. **Dashboard**:
-    - A **Streamlit dashboard** will be built to **display** the violations in a structured format, with **interactive charts** for visualizing the detected violations (e.g., pie charts, bar charts).
+   - A **Streamlit dashboard** will be built to **display** the violations in a structured format, with **interactive charts** for visualizing the detected violations (e.g., pie charts, bar charts).
 
 ---
 
@@ -50,34 +48,34 @@ Our solution will leverage **IBM Granite models** to process both **speech-to-te
 ### **Task 1: Data Processing & Rule Validation**
 
 - **Subtasks**:
-    - Parse **GDPR** and **HIPAA** PDF files for rule extraction.
-    - Implement logic to detect **PII** (e.g., names, emails, phone numbers) and **PHI** (e.g., health data, medical terms) in **CSV files**.
+  - Parse **GDPR** and **HIPAA** PDF files for rule extraction.
+  - Implement logic to detect **PII** (e.g., names, emails, phone numbers) and **PHI** (e.g., health data, medical terms) in **CSV files**.
 
 ### **Task 2: Granite Integration**
 
 - **Subtasks**:
-    - Set up **Granite Speech 8B** for **speech-to-text** and **Granite Instruct** for **text analysis**.
-    - Use the models to **transcribe meeting audio** and **detect violations** in the transcribed text.
+  - Set up **Granite Speech 8B** for **speech-to-text** and **Granite Instruct** for **text analysis**.
+  - Use the models to **transcribe meeting audio** and **detect violations** in the transcribed text.
 
 ### **Task 3: Real-Time Detection & Reporting**
 
 - **Subtasks**:
-    - Detect violations in **real-time** using the **Granite models**.
-    - **Generate PDF reports** of detected violations with details of which **GDPR/HIPAA rules** were violated.
+  - Detect violations in **real-time** using the **Granite models**.
+  - **Generate PDF reports** of detected violations with details of which **GDPR/HIPAA rules** were violated.
 
 ### **Task 4: Frontend Development (Shravan)**
 
 - **Subtasks**:
-    - **Shravan** will handle the **frontend** using **Loveable AI**.
-    - Design the **interactive dashboard** to display violations and statistics.
-    - Integrate the frontend with the **backend** using **Firebase** for real-time data storage.
+  - **Shravan** will handle the **frontend** using **Loveable AI**.
+  - Design the **interactive dashboard** to display violations and statistics.
+  - Integrate the frontend with the **backend** using **Firebase** for real-time data storage.
 
 ### **Task 5: System Integration and Testing**
 
 - **Subtasks**:
-    - Integrate **Granite models** into the system and test the overall **violation detection** functionality.
-    - Ensure that the **real-time detection** and **report generation** work smoothly.
-    - **Test the frontend** to ensure data is being displayed properly.
+  - Integrate **Granite models** into the system and test the overall **violation detection** functionality.
+  - Ensure that the **real-time detection** and **report generation** work smoothly.
+  - **Test the frontend** to ensure data is being displayed properly.
 
 ---
 
@@ -86,26 +84,26 @@ Our solution will leverage **IBM Granite models** to process both **speech-to-te
 - **RAM**: 32 GB (recommended for **Granite models**).
 - **GPU**: Required for optimal performance with **Granite models**.
 - **Tools**:
-    - **Loveable AI** for the **frontend** (Shravan).
-    - **Firebase** for the **backend database** (Shravan).
-    - **Streamlit** for additional **dashboard functionality**.
+  - **Loveable AI** for the **frontend** (Shravan).
+  - **Firebase** for the **backend database** (Shravan).
+  - **Streamlit** for additional **dashboard functionality**.
 
 ---
 
 ### **6. Concerns Raised by Sandeep Sir**
 
 - **PII and PHI Differentiation**:
-    - Ensure the system clearly differentiates between **PII** and **PHI** fields in the data.
+  - Ensure the system clearly differentiates between **PII** and **PHI** fields in the data.
 - **Real-Time Monitoring**:
-    - The system must detect and show violations **in real-time** on the dashboard.
+  - The system must detect and show violations **in real-time** on the dashboard.
 
 ---
 
 ### **7. How Shravan Can Contribute**
 
 - **Frontend Development**: **Shravan** will build the **frontend** using **Loveable AI**.
-    - Design an **interactive dashboard** that displays **GDPR and HIPAA violation detection** results.
-    - Integrate the frontend with **Firebase** for **data storage**.
+  - Design an **interactive dashboard** that displays **GDPR and HIPAA violation detection** results.
+  - Integrate the frontend with **Firebase** for **data storage**.
 - **Backend Integration**: **Shravan** will also handle **database management** and ensure **real-time updates** from the **backend**.
 
 ---
