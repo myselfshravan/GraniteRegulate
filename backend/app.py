@@ -22,9 +22,9 @@ uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 st.subheader("Upload custom GDPR/HIPAA rule file (optional)")
 uploaded_rules = st.file_uploader("Upload a custom rules PDF (GDPR or HIPAA)", type="pdf")
 
-# Path to default rule files (you need to have these in 'rules_files' folder)
-default_gdpr_path = "rules_files/GDPR_rules.pdf"
-default_hipaa_path = "rules_files/HIPAA_rules.pdf"
+# Path to default rule files (you need to have these in 'rules' folder)
+default_gdpr_path = "backend/rules/GDPR_RULES.pdf"
+default_hipaa_path = "backend/rules/HIPAA_RULES.pdf"
 
 # Function to extract text from PDFs
 def extract_text_from_pdf(pdf_path):

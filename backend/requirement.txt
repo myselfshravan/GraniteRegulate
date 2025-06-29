@@ -1,0 +1,9 @@
+ibm-watson
+python-dotenv
+ibm-watsonx-ai
+streamlit
+pandas
+PyMuPDF
+matplotlib
+plotly.express
+reportlab
