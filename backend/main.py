@@ -2,13 +2,17 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
-import re
 import fitz  # PyMuPDF
 import os
 from typing import List
 import io
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+import tempfile
+
+# --- Import WatsonX AI Functions ---
+from watsonchat import analyze_text_for_violations
+from speech import transcribe_audio
 
 app = FastAPI()
 
@@ -21,8 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Helper Functions (copied from app.py) ---
-
+# --- Helper Function for PDF Extraction ---
 def extract_text_from_pdf(file_stream):
     doc = fitz.open(stream=file_stream.read(), filetype="pdf")
     full_text = ""
@@ -31,58 +34,51 @@ def extract_text_from_pdf(file_stream):
         full_text += page.get_text()
     return full_text
 
-def check_gdpr(text: str) -> bool:
-    gdpr_keywords = [
-        'name', 'email', 'phone', 'address', 'social security', 'account number',
-        'ssn', 'telephone', 'cellphone', 'passport', 'driver\'s license'
-    ]
-    ssn_pattern = r'\d{3}-\d{2}-\d{4}'
-    phone_pattern = r'\+?\d{1,4}?[.-]?\(?\d{1,3}?\)?[.-]?\d{1,4}[.-]?\d{1,4}[.-]?\d{1,4}'
-    email_pattern = r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+'
-
-    if any(keyword in text.lower() for keyword in gdpr_keywords):
-        return True
-    if re.search(ssn_pattern, text) or re.search(phone_pattern, text) or re.search(email_pattern, text):
-        return True
-    return False
-
-def check_phi(text: str) -> bool:
-    health_keywords = ['patient', 'medical', 'doctor', 'condition', 'treatment', 'prescription']
-    if any(keyword in text.lower() for keyword in health_keywords):
-        return True
-    return False
-
-# --- API Endpoint ---
-
+# --- Main Analysis API Endpoint ---
 @app.post("/api/analyze")
 async def analyze_file(file: UploadFile = File(...)):
-    if file.content_type not in ["text/csv", "application/pdf"]:
-        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a CSV or PDF.")
+    allowed_types = ["text/csv", "application/pdf", "audio/mpeg", "audio/wav", "audio/mp3"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail=f"Invalid file type. Received {file.content_type}. Please upload a CSV, PDF, or audio file.")
 
-    violations = []
     filename = file.filename
+    text_to_analyze = ""
 
     try:
+        # --- Text Extraction based on File Type ---
         if file.content_type == "text/csv":
             df = pd.read_csv(file.file)
-            for index, row in df.iterrows():
-                for col in df.columns:
-                    text = str(row[col])
-                    if check_gdpr(text):
-                        violations.append(f"GDPR Violation found in row {index + 1}, column '{col}' of {filename}")
-                    if check_phi(text):
-                        violations.append(f"PHI Violation found in row {index + 1}, column '{col}' of {filename}")
+            text_to_analyze = df.to_string()
 
         elif file.content_type == "application/pdf":
-            text = extract_text_from_pdf(file.file)
-            # Simple check for now, can be improved
-            if check_gdpr(text):
-                violations.append(f"Potential GDPR Violation found in {filename}")
-            if check_phi(text):
-                violations.append(f"Potential PHI Violation found in {filename}")
+            text_to_analyze = extract_text_from_pdf(file.file)
+
+        elif file.content_type in ["audio/mpeg", "audio/wav", "audio/mp3"]:
+            # Save the uploaded audio to a temporary file to be processed by the speech-to-text SDK
+            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp_audio:
+                tmp_audio.write(await file.read())
+                tmp_audio_path = tmp_audio.name
+            
+            # Transcribe the audio file
+            text_to_analyze = transcribe_audio(tmp_audio_path)
+            
+            # Clean up the temporary file
+            os.unlink(tmp_audio_path)
+
+        # --- Perform AI Analysis ---
+        if not text_to_analyze.strip():
+            return {"filename": filename, "violations": ["No content found to analyze."]}
+
+        # Call the WatsonX AI model for analysis
+        # The result from the model is a single string, which we can wrap in a list
+        analysis_result = analyze_text_for_violations(text_to_analyze)
+        violations = [line.strip() for line in analysis_result.split('\n') if line.strip()]
+
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred while processing the file: {e}")
+        # Log the full error for debugging
+        print(f"An error occurred: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred while processing the file: {str(e)}")
 
     return {"filename": filename, "violations": violations}
 

@@ -30,7 +30,7 @@ Our solution will leverage **IBM Granite models** to process both **speech-to-te
 4. **Reporting**:
    - Upon detecting a violation, the tool will generate a **PDF report** detailing the violation and the specific **GDPR/HIPAA rule** that was violated.
 5. **Dashboard**:
-   - A **Streamlit dashboard** will be built to **display** the violations in a structured format, with **interactive charts** for visualizing the detected violations (e.g., pie charts, bar charts).
+   - A **React UI dashboard** will be built to **display** the violations in a structured format, with **interactive charts** for visualizing the detected violations (e.g., pie charts, bar charts).
 
 ---
 
@@ -84,9 +84,9 @@ Our solution will leverage **IBM Granite models** to process both **speech-to-te
 - **RAM**: 32 GB (recommended for **Granite models**).
 - **GPU**: Required for optimal performance with **Granite models**.
 - **Tools**:
-  - **Loveable AI** for the **frontend** (Shravan).
-  - **Firebase** for the **backend database** (Shravan).
-  - **Streamlit** for additional **dashboard functionality**.
+  - **React** for the **frontend** and **dashboard functionality**.
+  - **Firebase** for the **backend database**.
+  - **API** Fast API for interaction.
 
 ---
 

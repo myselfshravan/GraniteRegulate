@@ -13,18 +13,20 @@ service_url = os.environ.get("IBM_SPEECH_TO_TEXT_URL")
 if not api_key or not service_url:
     raise ValueError("IBM_API_KEY and IBM_SPEECH_TO_TEXT_URL must be set in your .env file.")
 
-authenticator = IAMAuthenticator(api_key)
+# Disable SSL verification for the authenticator
+authenticator = IAMAuthenticator(api_key, disable_ssl_verification=True)
 speech_to_text = SpeechToTextV1(
     authenticator=authenticator
 )
 speech_to_text.set_service_url(service_url)
+speech_to_text.set_disable_ssl_verification(True)
 
 # Function to transcribe audio
 def transcribe_audio(audio_file_path):
     with open(audio_file_path, 'rb') as audio_file:
         response = speech_to_text.recognize(
             audio=audio_file,
-            content_type='audio/wav'  # Change content type based on your audio file format
+            content_type='audio/l16; rate=44100'  # Using a more specific content type for WAV files
         ).get_result()
 
     # Extract and return the transcribed text

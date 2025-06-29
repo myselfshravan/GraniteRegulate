@@ -1,78 +1,61 @@
+import requests
 import os
-from ibm_watsonx_ai import APIClient
-from ibm_watsonx_ai import Credentials
-from ibm_watsonx_ai.foundation_models import ModelInference
 
-# Correct instantiation of Credentials
-credentials = Credentials(
-    url="https://us-south.ml.cloud.ibm.com",  # Correct URL format
-    api_key=os.environ.get("IBM_API_KEY", "default-api-key-if-not-set")  # Loaded from environment variable
-)
+# --- Configuration ---
+BASE_URL = "http://localhost:8000"
+ANALYZE_ENDPOINT = f"{BASE_URL}/api/analyze"
 
-# Initialize the API client with credentials
-client = APIClient(credentials)
+# Define the paths to the test files within the 'backend/test_files' directory
+TEST_FILES_DIR = os.path.join("backend", "test_files")
+CSV_FILE_PATH = os.path.join(TEST_FILES_DIR, "PII Data.csv")
+WAV_FILE_PATH = os.path.join(TEST_FILES_DIR, "HIPAA Violation Meeting.wav")
 
-# Parameters for the inference
-params = {
-    "time_limit": 10000,
-    "max_completion_tokens": 100  # Use max_completion_tokens instead of max_new_token
-}
+# --- Helper Function to Test File Upload ---
+def test_file_analysis(file_path, file_type):
+    """
+    Sends a file to the /api/analyze endpoint and prints the response.
+    """
+    if not os.path.exists(file_path):
+        print(f"--- ERROR: Test file not found at {file_path} ---\n")
+        return
 
-# Specify the model to use
-model_id = "ibm/granite-3-3-8b-instruct"  
-project_id = os.environ.get("IBM_PROJECT_ID", "default-project-id-if-not-set")  # Loaded from environment variable
-space_id = None  # Optional, if not using a specific space
-verify = False  # Option to disable SSL verification (optional)
-
-# Instantiate ModelInference with the parameters and API client
-model = ModelInference(
-    model_id=model_id,
-    api_client=client,
-    params=params,
-    project_id=project_id,
-    space_id=space_id,
-    verify=verify,
-)
-
-# Messages that you want to pass for inference
-messages = [
-    {
-        "role": "system",
-        "content": "You are a helpful assistant."
-    },
-    {
-        "role": "user",
-        "content": [
-            {
-                "type": "text",
-                "text": "How far is Paris from Bangalore?"
-            }
-        ]
-    },
-    {
-        "role": "assistant",
-        "content": "The distance between Paris, France, and Bangalore, India, is approximately 7,800 kilometers (4,850 miles)."
-    },
-    {
-        "role": "user",
-        "content": [
-            {
-                "type": "text",
-                "text": "What is the flight distance?"
-            }
-        ]
-    }
-]
-
-# Perform the inference and capture the response
-response = model.chat(messages=messages)
-
-# Print the response (formatted output)
-print("\nResponse from the model:")
-for choice in response['choices']:
-    print(f"Assistant: {choice['message']['content']}")
+    print(f"--- Testing file: {os.path.basename(file_path)} ---")
     
-# Additional useful info for debugging
-print("\nModel Information:")
-print(f"Model ID: {response['model_id']}")
-print(f"Usage Information: {response['usage']}")
+    with open(file_path, 'rb') as f:
+        files = {'file': (os.path.basename(file_path), f, file_type)}
+        
+        try:
+            response = requests.post(ANALYZE_ENDPOINT, files=files, timeout=120) # Increased timeout for AI processing
+            
+            # Check the response
+            if response.status_code == 200:
+                print("Status Code: 200 OK")
+                print("Response JSON:")
+                print(response.json())
+            else:
+                print(f"Status Code: {response.status_code}")
+                print("Error Response:")
+                print(response.text)
+                
+        except requests.exceptions.RequestException as e:
+            print(f"An error occurred during the request: {e}")
+            
+    print("-" * (len(os.path.basename(file_path)) + 16))
+    print("\n")
+
+
+# --- Main Execution ---
+if __name__ == "__main__":
+    print("=======================================")
+    print("  Starting Backend API Endpoint Tests  ")
+    print("=======================================\n")
+    
+    # Test 1: Upload the CSV file with PII data
+    test_file_analysis(CSV_FILE_PATH, 'text/csv')
+    
+    # Test 2: Upload the WAV file with HIPAA violation data
+    test_file_analysis(WAV_FILE_PATH, 'audio/wav')
+    
+    print("=======================================")
+    print("          API Testing Complete         ")
+    print("=======================================")
