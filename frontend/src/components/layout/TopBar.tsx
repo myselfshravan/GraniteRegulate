@@ -66,7 +66,7 @@ export function TopBar() {
             <p className="text-xs text-muted-foreground">Compliance Officer</p>
           </div>
           <Avatar className="h-9 w-9">
-            <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face" />
+            <AvatarImage src="/placeholder.svg" />
             <AvatarFallback className="bg-primary/10 text-primary font-medium">AU</AvatarFallback>
           </Avatar>
         </div>

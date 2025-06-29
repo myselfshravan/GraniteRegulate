@@ -11,6 +11,7 @@ import Upload from "./pages/Upload";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import ViolationResults from "./pages/ViolationResults";
+import { LiveMonitor } from "./pages/LiveMonitor";
 import NotFound from "./pages/NotFound";
 import MainLayout from "./components/layout/MainLayout";
 
@@ -29,6 +30,7 @@ const App = () => (
                 <Route index element={<Dashboard />} />
                 <Route path="upload" element={<Upload />} />
                 <Route path="reports" element={<Reports />} />
+                <Route path="live-monitor" element={<LiveMonitor />} />
                 <Route path="violations/:id" element={<ViolationResults />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
