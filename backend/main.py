@@ -13,6 +13,7 @@ import tempfile
 # --- Import WatsonX AI Functions ---
 from watsonchat import analyze_text_for_violations
 from speech import transcribe_audio
+from asana_client import create_asana_task
 
 app = FastAPI()
 
@@ -73,6 +74,12 @@ async def analyze_file(file: UploadFile = File(...)):
         # The result from the model is a single string, which we can wrap in a list
         analysis_result = analyze_text_for_violations(text_to_analyze)
         violations = [line.strip() for line in analysis_result.split('\n') if line.strip()]
+
+        # --- Create Asana Task if Violations are Found ---
+        if violations:
+            task_name = f"Compliance Violation Detected in {filename}"
+            task_notes = "The following violations were detected:\n\n" + "\n".join(violations)
+            create_asana_task(task_name, task_notes)
 
 
     except Exception as e:
