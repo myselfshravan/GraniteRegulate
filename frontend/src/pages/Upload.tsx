@@ -15,7 +15,8 @@ interface UploadedFile {
   type: string;
   status: 'pending' | 'analyzing' | 'complete' | 'error';
   progress: number;
-  violations?: number;
+  violations: string[];
+  error?: string;
 }
 
 const Upload = () => {
@@ -69,45 +70,76 @@ const Upload = () => {
         type: file.type,
         status: 'pending',
         progress: 0,
+        violations: [],
       };
 
       setFiles(prev => [...prev, newFile]);
       
-      // Simulate upload and analysis
-      simulateAnalysis(newFile.id);
+      // Start the actual analysis
+      startAnalysis(file, newFile.id);
     });
   };
 
-  const simulateAnalysis = async (fileId: string) => {
-    // Update status to analyzing
+  const startAnalysis = async (file: File, fileId: string) => {
+    // 1. Set status to analyzing
     setFiles(prev => prev.map(f => 
-      f.id === fileId ? { ...f, status: 'analyzing' as const } : f
+      f.id === fileId ? { ...f, status: 'analyzing' as const, progress: 10 } : f
     ));
 
-    // Simulate progress
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise(resolve => setTimeout(resolve, 200));
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      // 2. Make the API call
+      const response = await fetch('http://localhost:8000/api/analyze', {
+        method: 'POST',
+        body: formData,
+      });
+
       setFiles(prev => prev.map(f => 
-        f.id === fileId ? { ...f, progress: i } : f
+        f.id === fileId ? { ...f, progress: 50 } : f
       ));
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Analysis failed');
+      }
+
+      const results = await response.json();
+
+      // 3. Update file with results
+      setFiles(prev => prev.map(f => 
+        f.id === fileId ? { 
+          ...f, 
+          status: 'complete' as const, 
+          progress: 100,
+          violations: results.violations 
+        } : f
+      ));
+
+      toast({
+        title: "Analysis complete",
+        description: `Found ${results.violations.length} potential violations in ${results.filename}.`,
+        variant: results.violations.length > 0 ? "destructive" : "default",
+      });
+
+    } catch (error: any) {
+      // 4. Handle errors
+      setFiles(prev => prev.map(f => 
+        f.id === fileId ? { 
+          ...f, 
+          status: 'error' as const, 
+          progress: 100,
+          error: error.message 
+        } : f
+      ));
+
+      toast({
+        title: "An error occurred",
+        description: error.message,
+        variant: "destructive",
+      });
     }
-
-    // Complete analysis with random violations
-    const violations = Math.floor(Math.random() * 15);
-    setFiles(prev => prev.map(f => 
-      f.id === fileId ? { 
-        ...f, 
-        status: 'complete' as const, 
-        progress: 100,
-        violations 
-      } : f
-    ));
-
-    toast({
-      title: "Analysis complete",
-      description: `Found ${violations} potential violations in the uploaded file.`,
-      variant: violations > 0 ? "destructive" : "default",
-    });
   };
 
   const removeFile = (fileId: string) => {
@@ -115,7 +147,10 @@ const Upload = () => {
   };
 
   const viewResults = (fileId: string) => {
-    navigate(`/violations/${fileId}`);
+    const file = files.find(f => f.id === fileId);
+    if (file) {
+      navigate(`/violations/${fileId}`, { state: { violations: file.violations, fileName: file.name } });
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -228,13 +263,13 @@ const Upload = () => {
                       </div>
                     )}
                     
-                    {file.status === 'complete' && file.violations !== undefined && (
+                    {file.status === 'complete' && (
                       <div className="flex items-center gap-2">
-                        {file.violations > 0 ? (
+                        {file.violations.length > 0 ? (
                           <>
                             <AlertCircle className="h-4 w-4 text-destructive" />
                             <span className="text-sm text-destructive">
-                              {file.violations} violations found
+                              {file.violations.length} violations found
                             </span>
                           </>
                         ) : (
@@ -247,10 +282,18 @@ const Upload = () => {
                         )}
                       </div>
                     )}
+                     {file.status === 'error' && file.error && (
+                        <div className="flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4 text-destructive" />
+                            <span className="text-sm text-destructive">
+                                Error: {file.error}
+                            </span>
+                        </div>
+                     )}
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {file.status === 'complete' && file.violations && file.violations > 0 && (
+                    {file.status === 'complete' && file.violations.length > 0 && (
                       <Button 
                         size="sm" 
                         onClick={() => viewResults(file.id)}

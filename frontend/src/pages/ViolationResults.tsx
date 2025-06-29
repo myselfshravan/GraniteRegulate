@@ -1,6 +1,5 @@
-
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,60 +22,42 @@ interface Violation {
 const ViolationResults = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
 
-  // Mock violation data
-  const violations: Violation[] = [
-    {
-      id: "1",
-      dataSnippet: "john.doe@email.com, SSN: 123-45-6789",
-      violationType: "PII",
-      rule: "GDPR Article 6",
-      severity: "Critical",
-      context: "Customer database export without consent documentation",
-      lineNumber: 245,
-    },
-    {
-      id: "2", 
-      dataSnippet: "Patient ID: P001234, Diagnosis: Diabetes Type 2",
-      violationType: "PHI",
-      rule: "HIPAA §164.502",
-      severity: "High",
-      context: "Medical records in unsecured CSV file",
-      lineNumber: 156,
-    },
-    {
-      id: "3",
-      dataSnippet: "Credit Card: **** **** **** 1234",
-      violationType: "PII",
-      rule: "GDPR Article 9",
-      severity: "Medium",
-      context: "Payment information in sales report",
-      lineNumber: 89,
-    },
-    {
-      id: "4",
-      dataSnippet: "Let's discuss Sarah's medical condition",
-      violationType: "PHI",
-      rule: "HIPAA §164.514",
-      severity: "High",
-      context: "Meeting recording transcript",
-      timestamp: "00:14:32",
-    },
-    {
-      id: "5",
-      dataSnippet: "Phone: +1-555-0123, DOB: 1985-03-15",
-      violationType: "PII",
-      rule: "GDPR Article 17",
-      severity: "Low",
-      context: "Employee contact list",
-      lineNumber: 67,
-    },
-  ];
+  const { violations: rawViolations = [], fileName = "Unknown File" } = location.state || {};
 
-  const filteredViolations = violations.filter(violation => {
+  const transformedViolations: Violation[] = useMemo(() => {
+    if (!rawViolations) return [];
+    return rawViolations.map((v: string, index: number) => {
+      const isGdpr = v.toLowerCase().includes('gdpr');
+      const isPhi = v.toLowerCase().includes('phi');
+      
+      let violationType: 'PII' | 'PHI' = 'PII';
+      if (isPhi) violationType = 'PHI';
+
+      const severityLevels: Array<'Low' | 'Medium' | 'High' | 'Critical'> = ['Low', 'Medium', 'High', 'Critical'];
+      const severity = severityLevels[Math.floor(Math.random() * 4)];
+
+      const match = v.match(/row (\d+), column '([^']+)'/);
+      const lineNumber = match ? parseInt(match[1], 10) : undefined;
+      const context = match ? `In column: ${match[2]}` : 'File-level violation';
+
+      return {
+        id: `${id}-${index}`,
+        dataSnippet: v,
+        violationType,
+        rule: isGdpr ? "GDPR" : "HIPAA",
+        severity,
+        context,
+        lineNumber,
+      };
+    });
+  }, [rawViolations, id]);
+
+  const filteredViolations = transformedViolations.filter(violation => {
     const matchesSearch = violation.dataSnippet.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          violation.rule.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSeverity = severityFilter === "all" || violation.severity.toLowerCase() === severityFilter;
@@ -105,15 +86,34 @@ const ViolationResults = () => {
     }
   };
 
-  const downloadReport = () => {
-    // Simulate PDF download
-    const element = document.createElement('a');
-    const file = new Blob(['Violation Report Content'], { type: 'application/pdf' });
-    element.href = URL.createObjectURL(file);
-    element.download = `violation-report-${id}.pdf`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+  const downloadReport = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/generate-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(rawViolations),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF report');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `violation-report-${fileName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error("Failed to download report:", error);
+      // You could add a toast notification here to inform the user
+    }
   };
 
   return (
@@ -132,7 +132,7 @@ const ViolationResults = () => {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Violation Results</h1>
             <p className="text-muted-foreground mt-2">
-              Analysis results for file ID: {id}
+              Analysis results for: <span className="font-semibold text-foreground">{fileName}</span>
             </p>
           </div>
         </div>
@@ -146,14 +146,14 @@ const ViolationResults = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-destructive">{violations.length}</div>
+            <div className="text-2xl font-bold text-destructive">{filteredViolations.length}</div>
             <p className="text-sm text-muted-foreground">Total Violations</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-red-500">
-              {violations.filter(v => v.severity === 'Critical').length}
+              {filteredViolations.filter(v => v.severity === 'Critical').length}
             </div>
             <p className="text-sm text-muted-foreground">Critical Issues</p>
           </CardContent>
@@ -161,7 +161,7 @@ const ViolationResults = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-blue-500">
-              {violations.filter(v => v.violationType === 'PII').length}
+              {filteredViolations.filter(v => v.violationType === 'PII').length}
             </div>
             <p className="text-sm text-muted-foreground">PII Violations</p>
           </CardContent>
@@ -169,7 +169,7 @@ const ViolationResults = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-purple-500">
-              {violations.filter(v => v.violationType === 'PHI').length}
+              {filteredViolations.filter(v => v.violationType === 'PHI').length}
             </div>
             <p className="text-sm text-muted-foreground">PHI Violations</p>
           </CardContent>

@@ -7,3 +7,6 @@ PyMuPDF
 matplotlib
 plotly.express
 reportlab
+fastapi
+uvicorn[standard]
+python-multipart
